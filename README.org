@@ -1,7 +1,7 @@
 * Introduction
 
 Python's [[https://python.useinstructor.com/#getting-started][instructor library]] provides a more declarative, typed approach to interacting with LLM.
-This is a naive implementation, admittedly created by using gpt4-o1-preview, but it might be convenient enough for actual use.
+This is a naive implementation, admittedly created by using gpt-4o1 - [[https://chatgpt.com/share/66ef7d5a-9924-8007-b98c-c7f2d30c6f52][here is the conversation]], but it might be convenient enough for actual use.
 
 This is in very early alpha. It might be pre-alpha. I'm petitioning Greece to add a letter before Alpha as we speak.
 
