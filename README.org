@@ -1,16 +1,16 @@
-# Introduction
+* Introduction
 
 Python's [[https://python.useinstructor.com/#getting-started][instructor library]] provides a more declarative, typed approach to interacting with LLM.
 This is a naive implementation, admittedly created by using gpt4-o1-preview, but it might be convenient enough for actual use.
 
 This is in very early alpha. It might be pre-alpha. I'm petitioning Greece to add a letter before Alpha as we speak.
 
-# Installation
+* Installation
 
 This isn't on melpa. Your package / install manager of choice can tell you how to install this.
 It depends on ~llm.el~ which you can find on ELPA.
 
-# Usage
+* Usage
 
 #+begin_src elisp
   (setq llm (make-llm-ollama :chat-model "llama3.1"))
