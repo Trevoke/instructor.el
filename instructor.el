@@ -1,6 +1,16 @@
 ;; -*- lexical-binding: t; -*-
 
-(defmacro def-llm-struct (name &rest slots)
+(cl-defun instructor-call (&key llm type prompt)
+  "Generate instances of TYPE from LLM based on PROMPT."
+  (let* ((function-call (instructor--make-function-spec type))
+         (chat-prompt (llm-make-chat-prompt
+                       prompt
+                       :functions `(,function-call)))
+         (results (llm-chat llm chat-prompt)))
+    ;; Extract the structs from the results
+    (mapcar #'cdr results)))
+
+(defmacro instructor-struct (name &rest slots)
   "Define a struct NAME and record its slot names, types, and descriptions for LLM usage."
   (let ((slot-defs '())
         (metadata '()))
@@ -47,7 +57,7 @@
        ;; Record the slots with their types and descriptions
        (put ',name 'llm-struct-slots ',(reverse metadata)))))
 
-(defun llm-struct-to-function-args (struct-name)
+(defun instructor-struct-to-function-args (struct-name)
   "Generate llm-function-arg definitions from STRUCT-NAME's slots."
   (let ((slots (get struct-name 'llm-struct-slots)))
     (mapcar (lambda (slot)
@@ -61,7 +71,7 @@
                  :required t)))
             slots)))
 
-(defun llm-struct-constructor (struct-name)
+(defun instructor--struct-constructor (struct-name)
   "Create a lambda function to construct instances of STRUCT-NAME."
   (let* ((slots (get struct-name 'llm-struct-slots))
          (constructor (intern (concat "make-" (symbol-name struct-name)))))
@@ -72,10 +82,10 @@
                           slots)))
         (apply constructor (cl-mapcan #'list keys args))))))
 
-(defun llm-make-function-call (struct-name)
+(defun instructor--make-function-spec (struct-name)
   "Create an llm-function-call for STRUCT-NAME."
-  (let ((args (llm-struct-to-function-args struct-name))
-        (function (llm-struct-constructor struct-name))
+  (let ((args (instructor-struct-to-function-args struct-name))
+        (function (instructor--struct-constructor struct-name))
         (function-name (format "make-%s" (symbol-name struct-name))))
     (make-llm-function-call
      :function function
@@ -83,12 +93,4 @@
      :description (format "Construct %s instances." (symbol-name struct-name))
      :args args)))
 
-(cl-defun magic-function (&key llm type prompt)
-  "Generate instances of TYPE from LLM based on PROMPT."
-  (let* ((function-call (llm-make-function-call type))
-         (chat-prompt (llm-make-chat-prompt
-                       prompt
-                       :functions `(,function-call)))
-         (results (llm-chat llm chat-prompt)))
-    ;; Extract the structs from the results
-    (mapcar #'cdr results)))
+(provide 'instructor)
