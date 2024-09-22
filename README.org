@@ -23,7 +23,7 @@ It depends on ~llm.el~ which you can find on ELPA.
                         (skills nil :type (list string) :description "The skills the character has"))
 
   (instructor-call :llm llm
-                   :type 'dnd-character
+                   :type 'dnd-character ;; note, same name as type created above
                    :prompt "Make a starter character for D&D 5th edition.")
 
   ;; (#s(dnd-character :name "Eilif Stonefist" :class "Fighter" :race "Human" :skills
