@@ -1,5 +1,7 @@
 ;; -*- lexical-binding: t; -*-
 
+(require 'llm)
+
 (cl-defun instructor-call (&key llm type prompt)
   "Generate instances of TYPE from LLM based on PROMPT."
   (let* ((function-call (instructor--make-function-spec type))
@@ -10,7 +12,7 @@
     ;; Extract the structs from the results
     (mapcar #'cdr results)))
 
-(defmacro instructor-struct (name &rest slots)
+(defmacro instructor-defstruct (name &rest slots)
   "Define a struct NAME and record its slot names, types, and descriptions for LLM usage."
   (let ((slot-defs '())
         (metadata '()))

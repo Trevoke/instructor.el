@@ -1,0 +1,32 @@
+# Introduction
+
+Python's [[https://python.useinstructor.com/#getting-started][instructor library]] provides a more declarative, typed approach to interacting with LLM.
+This is a naive implementation, admittedly created by using gpt4-o1-preview, but it might be convenient enough for actual use.
+
+This is in very early alpha. It might be pre-alpha. I'm petitioning Greece to add a letter before Alpha as we speak.
+
+# Installation
+
+This isn't on melpa. Your package / install manager of choice can tell you how to install this.
+It depends on ~llm.el~ which you can find on ELPA.
+
+# Usage
+
+#+begin_src elisp
+  (setq llm (make-llm-ollama :chat-model "llama3.1"))
+
+  ;; for valid types see the help for `make-llm-function-arg' and look at the type.
+  (instructor-defstruct dnd-character
+                        (name nil :type string :description "The character's name")
+                        (class nil :type string :description "The character's class")
+                        (race nil :type string :description "The character's race in the D&D setting")
+                        (skills nil :type (list string) :description "The skills the character has"))
+
+  (instructor-call :llm llm
+                   :type 'dnd-character
+                   :prompt "Make a starter character for D&D 5th edition.")
+
+  ;; (#s(dnd-character :name "Eilif Stonefist" :class "Fighter" :race "Human" :skills
+  ;;                   ["Acrobatics" "Athletics"]))
+
+#+end_src
