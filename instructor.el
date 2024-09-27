@@ -1,6 +1,7 @@
 ;; -*- lexical-binding: t; -*-
 
 (require 'llm)
+(require 'cl-lib)
 
 (cl-defun instructor-call (&key llm type prompt)
   "Generate instances of TYPE from LLM based on PROMPT."
@@ -59,30 +60,73 @@
        ;; Record the slots with their types and descriptions
        (put ',name 'llm-struct-slots ',(reverse metadata)))))
 
+
 (defun instructor-struct-to-function-args (struct-name)
   "Generate llm-function-arg definitions from STRUCT-NAME's slots."
-  (let ((slots (get struct-name 'llm-struct-slots)))
-    (mapcar (lambda (slot)
-              (let ((name (symbol-name (nth 0 slot)))
-                    (type (nth 1 slot))
-                    (description (nth 2 slot)))
-                (make-llm-function-arg
-                 :name name
-                 :type type
-                 :description description
-                 :required t)))
-            slots)))
+  (let ((slots (get struct-name 'llm-struct-slots))
+        (primitive-types '(string integer float boolean)))
+    (mapcar
+     (lambda (slot)
+       (let ((name (symbol-name (nth 0 slot)))
+             (type (nth 1 slot))
+             (description (nth 2 slot)))
+         (cond
+          ;; Check for primitive types
+          ((member type primitive-types)
+           (make-llm-function-arg
+            :name name
+            :type type
+            :description description
+            :required t))
+          ;; Check for complex types like (enum ...) or (list ...)
+          ((and (listp type) (member (car type) '(enum list or)))
+           (make-llm-function-arg
+            :name name
+            :type type  ; Pass the type as is
+            :description description
+            :required t))
+          ;; Nested struct
+          ((and (symbolp type) (get type 'llm-struct-slots))
+           (make-llm-function-arg
+            :name name
+            :type `(object ,@(instructor-struct-to-function-args type))
+            :description description
+            :required t))
+          (t
+           (error "Unknown type: %s" type)))))
+     slots)))
 
 (defun instructor--struct-constructor (struct-name)
   "Create a lambda function to construct instances of STRUCT-NAME."
   (let* ((slots (get struct-name 'llm-struct-slots))
-         (constructor (intern (concat "make-" (symbol-name struct-name)))))
+         (constructor (intern (concat "make-" (symbol-name struct-name))))
+         (primitive-types '(string integer float boolean)))
     (lambda (&rest args)
-      ;; Map positional arguments to keyword arguments
-      (let ((keys (mapcar (lambda (slot)
+      (let ((values
+             (cl-mapcar
+              (lambda (slot arg)
+                (let ((type (nth 1 slot)))
+                  (cond
+                   ;; Primitive types
+                   ((member type primitive-types)
+                    arg)
+                   ;; Complex types like (enum ...)
+                   ((and (listp type) (member (car type) '(enum list or)))
+                    arg)
+                   ;; Nested struct
+                   ((and (symbolp type) (get type 'llm-struct-slots))
+                    (funcall (instructor--struct-constructor type)
+                             (if (hash-table-p arg)
+                                 (hash-table-values arg)
+                               arg)))
+                   (t
+                    (error "Unknown type: %s" type)))))
+              slots args))
+            (keys (mapcar (lambda (slot)
                             (intern (concat ":" (symbol-name (nth 0 slot)))))
                           slots)))
-        (apply constructor (cl-mapcan #'list keys args))))))
+        (apply constructor (cl-mapcan #'list keys values))))))
+
 
 (defun instructor--make-function-spec (struct-name)
   "Create an llm-function-call for STRUCT-NAME."
